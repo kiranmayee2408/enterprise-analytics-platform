@@ -1,0 +1,36 @@
+name: "enterprise_analytics"
+version: "1.0.0"
+config-version: 2
+
+profile: "enterprise_analytics"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  enterprise_analytics:
+    bronze:
+      +materialized: view
+      +schema: bronze
+      +tags: ["bronze", "raw"]
+    silver:
+      +materialized: incremental
+      +schema: silver
+      +tags: ["silver", "clean"]
+      +incremental_strategy: merge
+    gold:
+      +materialized: table
+      +schema: gold
+      +tags: ["gold", "reporting"]
+      +post-hook: "GRANT SELECT ON {{ this }} TO ROLE REPORTER"
+
+vars:
+  start_date: "2023-01-01"
+  lookback_days: 90
