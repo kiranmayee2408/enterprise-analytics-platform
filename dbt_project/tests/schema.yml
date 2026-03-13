@@ -1,0 +1,126 @@
+version: 2
+
+sources:
+  - name: raw
+    database: "{{ env_var('DBT_DATABASE', 'ANALYTICS_DB') }}"
+    schema: raw
+    tables:
+      - name: orders
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 6, period: hour}
+          error_after: {count: 24, period: hour}
+      - name: customers
+        loaded_at_field: _loaded_at
+
+models:
+  - name: stg_orders
+    description: "Typed and cast raw orders from source ERP system."
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests: [not_null]
+      - name: order_date
+        tests: [not_null]
+      - name: unit_price
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000000
+      - name: quantity
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned']
+      - name: discount_pct
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+
+      - name: region
+        tests:
+          - accepted_values:
+              values: ['North', 'South', 'East', 'West', 'International']
+      - name: channel
+        tests:
+          - accepted_values:
+              values: ['online', 'retail', 'partner', 'direct']
+
+  - name: stg_customers
+    description: "Typed raw customer records."
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: email
+        tests: [not_null, unique]
+      - name: customer_segment
+        tests:
+          - accepted_values:
+              values: ['Enterprise', 'SMB', 'Consumer']
+
+  - name: int_orders_enriched
+    description: "Cleaned, enriched orders joined with customer attributes. Incremental model."
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: net_revenue
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: gross_revenue
+        tests: [not_null]
+      - name: days_to_ship
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 365
+      - name: dq_flag
+        tests:
+          - accepted_values:
+              values: ['ok']  # Only clean records should exist in silver
+
+  - name: mart_revenue_by_segment
+    description: "Monthly revenue aggregated by customer segment and region. Executive dashboard source."
+    columns:
+      - name: order_month
+        tests: [not_null]
+      - name: customer_segment
+        tests: [not_null]
+      - name: net_revenue
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+
+  - name: mart_customer_360
+    description: "One row per customer with lifetime metrics, RFM scores, and churn risk."
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: rfm_total
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 3
+              max_value: 15
+      - name: customer_tier
+        tests:
+          - accepted_values:
+              values: ['Platinum', 'Gold', 'Silver', 'Bronze']
+      - name: churn_risk
+        tests:
+          - accepted_values:
+              values: ['high', 'medium', 'low']
