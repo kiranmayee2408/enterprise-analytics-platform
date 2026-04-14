@@ -1,0 +1,51 @@
+customer_id,customer_name,email,country,city,customer_segment,signup_date,is_active,account_manager,_loaded_at
+CUST-0001,Customer 1 Corp,contact1@customer1.com,France,Paris,Enterprise,2022-12-09,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0002,Customer 2 Corp,contact2@customer2.com,UK,London,Consumer,2022-12-18,true,James O'Brien,2026-06-01T00:00:00
+CUST-0003,Customer 3 Corp,contact3@customer3.com,USA,New York,Enterprise,2022-04-08,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0004,Customer 4 Corp,contact4@customer4.com,France,Paris,Enterprise,2022-08-19,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0005,Customer 5 Corp,contact5@customer5.com,India,Bangalore,Consumer,2022-07-11,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0006,Customer 6 Corp,contact6@customer6.com,UK,Manchester,Enterprise,2022-02-13,true,Priya Patel,2026-06-01T00:00:00
+CUST-0007,Customer 7 Corp,contact7@customer7.com,India,Mumbai,Consumer,2022-05-26,true,James O'Brien,2026-06-01T00:00:00
+CUST-0008,Customer 8 Corp,contact8@customer8.com,Australia,Sydney,SMB,2022-02-18,true,Priya Patel,2026-06-01T00:00:00
+CUST-0009,Customer 9 Corp,contact9@customer9.com,Australia,Sydney,Consumer,2022-02-02,true,Priya Patel,2026-06-01T00:00:00
+CUST-0010,Customer 10 Corp,contact10@customer10.com,USA,New York,Enterprise,2022-07-09,false,Priya Patel,2026-06-01T00:00:00
+CUST-0011,Customer 11 Corp,contact11@customer11.com,UK,Manchester,SMB,2022-04-22,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0012,Customer 12 Corp,contact12@customer12.com,Australia,Sydney,Consumer,2022-12-08,true,James O'Brien,2026-06-01T00:00:00
+CUST-0013,Customer 13 Corp,contact13@customer13.com,Germany,Munich,Consumer,2022-12-18,true,Priya Patel,2026-06-01T00:00:00
+CUST-0014,Customer 14 Corp,contact14@customer14.com,India,Bangalore,Enterprise,2022-01-26,true,James O'Brien,2026-06-01T00:00:00
+CUST-0015,Customer 15 Corp,contact15@customer15.com,Canada,Toronto,Enterprise,2022-10-23,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0016,Customer 16 Corp,contact16@customer16.com,France,Paris,SMB,2022-11-15,true,Priya Patel,2026-06-01T00:00:00
+CUST-0017,Customer 17 Corp,contact17@customer17.com,UK,London,Consumer,2022-09-18,true,James O'Brien,2026-06-01T00:00:00
+CUST-0018,Customer 18 Corp,contact18@customer18.com,Australia,Melbourne,SMB,2022-04-05,false,Sarah Chen,2026-06-01T00:00:00
+CUST-0019,Customer 19 Corp,contact19@customer19.com,India,Bangalore,Enterprise,2022-03-21,true,James O'Brien,2026-06-01T00:00:00
+CUST-0020,Customer 20 Corp,contact20@customer20.com,Australia,Sydney,SMB,2022-07-20,false,Priya Patel,2026-06-01T00:00:00
+CUST-0021,Customer 21 Corp,contact21@customer21.com,Australia,Sydney,Consumer,2022-12-04,true,Priya Patel,2026-06-01T00:00:00
+CUST-0022,Customer 22 Corp,contact22@customer22.com,USA,Chicago,SMB,2022-03-15,true,Priya Patel,2026-06-01T00:00:00
+CUST-0023,Customer 23 Corp,contact23@customer23.com,Australia,Sydney,Consumer,2022-02-28,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0024,Customer 24 Corp,contact24@customer24.com,UK,Manchester,Enterprise,2022-09-25,true,Priya Patel,2026-06-01T00:00:00
+CUST-0025,Customer 25 Corp,contact25@customer25.com,Germany,Berlin,Enterprise,2022-06-27,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0026,Customer 26 Corp,contact26@customer26.com,USA,New York,Consumer,2022-02-03,false,Sarah Chen,2026-06-01T00:00:00
+CUST-0027,Customer 27 Corp,contact27@customer27.com,India,Bangalore,Enterprise,2022-11-16,true,Priya Patel,2026-06-01T00:00:00
+CUST-0028,Customer 28 Corp,contact28@customer28.com,Australia,Melbourne,Enterprise,2022-09-25,true,Priya Patel,2026-06-01T00:00:00
+CUST-0029,Customer 29 Corp,contact29@customer29.com,Germany,Munich,SMB,2022-09-15,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0030,Customer 30 Corp,contact30@customer30.com,UK,London,SMB,2022-01-19,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0031,Customer 31 Corp,contact31@customer31.com,USA,New York,Consumer,2022-11-02,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0032,Customer 32 Corp,contact32@customer32.com,USA,Chicago,Enterprise,2022-09-08,true,James O'Brien,2026-06-01T00:00:00
+CUST-0033,Customer 33 Corp,contact33@customer33.com,UK,London,Consumer,2022-10-19,false,Marcus Williams,2026-06-01T00:00:00
+CUST-0034,Customer 34 Corp,contact34@customer34.com,India,Mumbai,SMB,2022-04-04,true,James O'Brien,2026-06-01T00:00:00
+CUST-0035,Customer 35 Corp,contact35@customer35.com,Canada,Vancouver,SMB,2022-08-28,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0036,Customer 36 Corp,contact36@customer36.com,USA,Chicago,Consumer,2022-06-26,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0037,Customer 37 Corp,contact37@customer37.com,UK,London,Consumer,2022-08-05,false,Marcus Williams,2026-06-01T00:00:00
+CUST-0038,Customer 38 Corp,contact38@customer38.com,Canada,Vancouver,Enterprise,2022-02-15,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0039,Customer 39 Corp,contact39@customer39.com,France,Paris,Enterprise,2022-04-06,false,James O'Brien,2026-06-01T00:00:00
+CUST-0040,Customer 40 Corp,contact40@customer40.com,Germany,Berlin,SMB,2022-01-06,false,Sarah Chen,2026-06-01T00:00:00
+CUST-0041,Customer 41 Corp,contact41@customer41.com,Germany,Munich,SMB,2022-05-14,false,Marcus Williams,2026-06-01T00:00:00
+CUST-0042,Customer 42 Corp,contact42@customer42.com,UK,Manchester,Enterprise,2022-01-19,true,Priya Patel,2026-06-01T00:00:00
+CUST-0043,Customer 43 Corp,contact43@customer43.com,USA,New York,Consumer,2022-08-17,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0044,Customer 44 Corp,contact44@customer44.com,Australia,Sydney,Enterprise,2022-02-20,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0045,Customer 45 Corp,contact45@customer45.com,Germany,Berlin,Consumer,2022-04-19,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0046,Customer 46 Corp,contact46@customer46.com,Germany,Munich,SMB,2022-04-22,true,Marcus Williams,2026-06-01T00:00:00
+CUST-0047,Customer 47 Corp,contact47@customer47.com,Canada,Vancouver,Enterprise,2022-11-21,true,James O'Brien,2026-06-01T00:00:00
+CUST-0048,Customer 48 Corp,contact48@customer48.com,Canada,Toronto,Enterprise,2022-08-20,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0049,Customer 49 Corp,contact49@customer49.com,Australia,Sydney,Consumer,2022-05-05,true,Sarah Chen,2026-06-01T00:00:00
+CUST-0050,Customer 50 Corp,contact50@customer50.com,UK,Manchester,SMB,2022-03-15,true,Sarah Chen,2026-06-01T00:00:00

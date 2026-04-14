@@ -10,8 +10,20 @@ sources:
         freshness:
           warn_after: {count: 6, period: hour}
           error_after: {count: 24, period: hour}
+        columns:
+          - name: order_id
+            tests: [unique, not_null]
+          - name: customer_id
+            tests: [not_null]
+          - name: order_date
+            tests: [not_null]
       - name: customers
         loaded_at_field: _loaded_at
+        columns:
+          - name: customer_id
+            tests: [unique, not_null]
+          - name: email
+            tests: [unique, not_null]
 
 models:
   - name: stg_orders
@@ -20,6 +32,8 @@ models:
       - name: order_id
         tests: [unique, not_null]
       - name: customer_id
+        tests: [not_null]
+      - name: product_id
         tests: [not_null]
       - name: order_date
         tests: [not_null]
@@ -33,40 +47,54 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-      - name: status
-        tests:
-          - accepted_values:
-              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned']
+              min_value: 1
+              max_value: 10000
       - name: discount_pct
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
               max_value: 100
-
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned']
       - name: region
         tests:
+          - not_null
           - accepted_values:
               values: ['North', 'South', 'East', 'West', 'International']
       - name: channel
         tests:
+          - not_null
           - accepted_values:
               values: ['online', 'retail', 'partner', 'direct']
+      - name: _loaded_at
+        tests: [not_null]
 
   - name: stg_customers
-    description: "Typed raw customer records."
+    description: "Typed raw customer records from CRM."
     columns:
       - name: customer_id
         tests: [unique, not_null]
+      - name: customer_name
+        tests: [not_null]
       - name: email
         tests: [not_null, unique]
+      - name: country
+        tests: [not_null]
       - name: customer_segment
         tests:
+          - not_null
           - accepted_values:
               values: ['Enterprise', 'SMB', 'Consumer']
+      - name: signup_date
+        tests: [not_null]
+      - name: is_active
+        tests: [not_null]
 
   - name: int_orders_enriched
-    description: "Cleaned, enriched orders joined with customer attributes. Incremental model."
+    description: "Cleaned, enriched orders joined with customer attributes. Incremental — only dq_flag = ok records reach silver."
     columns:
       - name: order_id
         tests: [unique, not_null]
@@ -76,51 +104,139 @@ models:
           - relationships:
               to: ref('stg_customers')
               field: customer_id
+      - name: gross_revenue
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
       - name: net_revenue
         tests:
           - not_null
           - dbt_utils.accepted_range:
               min_value: 0
-      - name: gross_revenue
-        tests: [not_null]
+      - name: discount_amount
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
       - name: days_to_ship
         tests:
           - dbt_utils.accepted_range:
               min_value: 0
               max_value: 365
-      - name: dq_flag
+      - name: order_month
+        tests: [not_null]
+      - name: order_year
+        tests: [not_null]
+      - name: customer_segment
         tests:
           - accepted_values:
-              values: ['ok']  # Only clean records should exist in silver
+              values: ['Enterprise', 'SMB', 'Consumer']
+      - name: dq_flag
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ok']
+      - name: _loaded_at
+        tests: [not_null]
+      - name: _transformed_at
+        tests: [not_null]
 
   - name: mart_revenue_by_segment
-    description: "Monthly revenue aggregated by customer segment and region. Executive dashboard source."
+    description: "Monthly revenue by customer segment, region, and channel. Feeds executive dashboard."
     columns:
       - name: order_month
         tests: [not_null]
       - name: customer_segment
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Enterprise', 'SMB', 'Consumer']
+      - name: region
         tests: [not_null]
+      - name: gross_revenue
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
       - name: net_revenue
         tests:
           - not_null
           - dbt_utils.accepted_range:
               min_value: 0
+      - name: order_count
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: unique_customers
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+      - name: on_time_delivery_pct
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
 
   - name: mart_customer_360
-    description: "One row per customer with lifetime metrics, RFM scores, and churn risk."
+    description: "One row per customer — lifetime value, RFM scores, churn risk. Powers CRM and retention dashboards."
     columns:
       - name: customer_id
         tests: [unique, not_null]
+      - name: email
+        tests: [unique, not_null]
+      - name: customer_segment
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Enterprise', 'SMB', 'Consumer']
+      - name: lifetime_gross_revenue
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: lifetime_net_revenue
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: lifetime_order_count
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: days_since_last_order
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: recency_score
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+      - name: frequency_score
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+      - name: monetary_score
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
       - name: rfm_total
         tests:
+          - not_null
           - dbt_utils.accepted_range:
               min_value: 3
               max_value: 15
-      - name: customer_tier
-        tests:
-          - accepted_values:
-              values: ['Platinum', 'Gold', 'Silver', 'Bronze']
       - name: churn_risk
         tests:
+          - not_null
           - accepted_values:
               values: ['high', 'medium', 'low']
+      - name: customer_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Platinum', 'Gold', 'Silver', 'Bronze']
+      - name: _refreshed_at
+        tests: [not_null]

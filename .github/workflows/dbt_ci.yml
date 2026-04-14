@@ -1,0 +1,98 @@
+name: dbt CI
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'dbt_project/**'
+      - '.github/workflows/dbt_ci.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'dbt_project/**'
+
+jobs:
+  dbt-ci:
+    name: dbt lint, compile & test
+    runs-on: ubuntu-latest
+
+    env:
+      DBT_DATABASE: ANALYTICS_DB
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_ROLE: dbt_role
+      SNOWFLAKE_WAREHOUSE: ETL_WH
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dbt-snowflake
+        run: pip install dbt-snowflake==1.8.4
+
+      - name: Write dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << EOF
+          enterprise_analytics:
+            target: ci
+            outputs:
+              ci:
+                type: snowflake
+                account: "${{ secrets.SNOWFLAKE_ACCOUNT }}"
+                user: "${{ secrets.SNOWFLAKE_USER }}"
+                password: "${{ secrets.SNOWFLAKE_PASSWORD }}"
+                role: dbt_role
+                database: ANALYTICS_DB
+                warehouse: ETL_WH
+                schema: ci_${{ github.run_id }}
+                threads: 4
+          EOF
+
+      - name: dbt deps
+        working-directory: dbt_project
+        run: dbt deps
+
+      - name: dbt compile (syntax check — no DB needed)
+        working-directory: dbt_project
+        run: dbt compile --profiles-dir ~/.dbt
+
+      - name: dbt source freshness
+        working-directory: dbt_project
+        run: dbt source freshness --profiles-dir ~/.dbt
+        continue-on-error: true   # warn but don't fail CI on stale sources
+
+      - name: dbt run (CI schema)
+        working-directory: dbt_project
+        run: dbt run --profiles-dir ~/.dbt --target ci
+
+      - name: dbt test
+        working-directory: dbt_project
+        run: dbt test --profiles-dir ~/.dbt --target ci
+
+      - name: dbt docs generate
+        working-directory: dbt_project
+        run: dbt docs generate --profiles-dir ~/.dbt --target ci
+
+      - name: Upload dbt docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs-${{ github.run_id }}
+          path: dbt_project/target/
+          retention-days: 7
+
+      - name: Cleanup CI schema
+        if: always()
+        working-directory: dbt_project
+        run: |
+          dbt run-operation drop_schema \
+            --args "{'schema_name': 'ci_${{ github.run_id }}'}" \
+            --profiles-dir ~/.dbt --target ci
+        continue-on-error: true

@@ -1,183 +1,247 @@
 # Enterprise Analytics Platform
 
-A production-grade **data warehouse** built on Snowflake + dbt + Airflow — delivering daily-refreshed analytics marts to Tableau dashboards, with 50+ automated data quality tests and lineage tracking.
+[![dbt](https://img.shields.io/badge/dbt-1.8-orange?logo=dbt)](https://getdbt.com)
+[![Snowflake](https://img.shields.io/badge/Snowflake-enterprise-blue?logo=snowflake)](https://snowflake.com)
+[![Airflow](https://img.shields.io/badge/Airflow-2.9-red?logo=apacheairflow)](https://airflow.apache.org)
+[![dbt tests](https://img.shields.io/badge/dbt_tests-120%2B-brightgreen)](dbt_project/tests/schema.yml)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-black?logo=githubactions)](https://github.com/kiranmayee2408/enterprise-analytics-platform/actions)
+[![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-![dbt](https://img.shields.io/badge/dbt-1.8-orange?logo=dbt)
-![Snowflake](https://img.shields.io/badge/Snowflake-enterprise-blue?logo=snowflake)
-![Airflow](https://img.shields.io/badge/Airflow-2.9-red?logo=apacheairflow)
-![Tests](https://img.shields.io/badge/dbt_tests-50%2B-green)
+A production data warehouse on Snowflake with dbt transformation models, **120+ automated data quality tests**, and an Airflow DAG that orchestrates daily runs with 2-hour SLA monitoring and Slack failure alerts. Deployed on AWS EC2 with GitHub Actions CI on every pull request.
 
----
-
-## Business Impact
-
-This platform replaced 15+ manual Power BI data pulls and reduced analyst query turnaround from **3 days to under 5 minutes**. Automated SLA monitoring and Slack alerting catch pipeline issues before analysts notice.
+Built on patterns from my work at Cognizant Technology Solutions, where I designed data pipelines processing 10M+ daily records for 3 enterprise clients, reducing analyst query turnaround from **3 days to under 5 minutes**.
 
 ---
 
 ## Architecture
 
-```
-Source Systems (ERP, CRM)
-         │  AWS DMS / Fivetran
-         ▼
-┌────────────────────────┐
-│   RAW schema           │  Immutable raw tables — never modified
-│   (Snowflake)          │  Freshness checked before each run
-└──────────┬─────────────┘
-           │ dbt (Bronze)
-           ▼
-┌────────────────────────┐
-│   BRONZE schema        │  Type casting, schema enforcement
-│   Views                │  No business logic
-└──────────┬─────────────┘
-           │ dbt (Silver)
-           ▼
-┌────────────────────────┐
-│   SILVER schema        │  Incremental merge, feature engineering,
-│   Incremental tables   │  DQ filtering, customer enrichment
-└──────────┬─────────────┘
-           │ dbt (Gold)
-           ▼
-┌────────────────────────┐
-│   GOLD schema          │  Revenue marts, Customer 360, RFM scores
-│   Tables (clustered)   │  Directly consumed by BI tools
-└──────────┬─────────────┘
-           │
-    ┌──────┴──────┐
-    ▼             ▼
- Tableau       Power BI
- Dashboards    Dashboards
-```
-
-**Orchestration:**
-```
-Airflow (6 AM daily)
-  → Source freshness check
-  → dbt run + test (Bronze)
-  → dbt run + test (Silver)
-  → dbt run + test (Gold)
-  → Row count validation
-  → Slack alert (success/failure)
-```
+![Architecture Diagram](docs/architecture.png)
 
 ---
 
-## Quickstart
+## What It Does
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Ingest** | AWS DMS / Fivetran → S3 | ERP + CRM data landed as JSON in S3 external stage |
+| **Bronze** | dbt views | Type casting, schema enforcement — no business logic |
+| **Silver** | dbt incremental (merge) | Revenue calcs, DQ filtering, customer enrichment, RFM features |
+| **Gold** | dbt tables (clustered) | Revenue mart + Customer 360 — directly consumed by Tableau/Power BI |
+| **Orchestration** | Airflow DAG on AWS EC2 | Daily 06:00 UTC: freshness → Bronze → Silver → Gold → notify |
+| **Quality** | 120+ dbt schema tests | Uniqueness, nulls, ranges, accepted values, referential integrity |
+| **CI/CD** | GitHub Actions | dbt compile + run + test on every PR |
+| **Alerting** | Slack webhooks | SLA breach, task failure, stale source data |
+
+---
+
+## Quickstart (Local — with sample data)
+
+No Snowflake account needed to run the pipeline locally against seed data.
 
 ```bash
 git clone https://github.com/kiranmayee2408/enterprise-analytics-platform.git
 cd enterprise-analytics-platform
 
 # Install dbt
-pip install dbt-snowflake==1.8.0
+pip install dbt-snowflake==1.8.4
 
 # Configure Snowflake connection
 cp config/profiles.yml.example ~/.dbt/profiles.yml
 # Edit with your Snowflake credentials
 
-# Run the full pipeline
 cd dbt_project
+
+# Install dbt packages
 dbt deps
-dbt source freshness     # Check raw data is fresh
-dbt run                  # Build all models
-dbt test                 # Run 50+ data quality checks
-dbt docs generate && dbt docs serve  # Interactive lineage + docs
+
+# Load sample data (50 customers, 200 orders)
+dbt seed
+
+# Run full pipeline
+dbt source freshness     # Check source data is fresh
+dbt run                  # Build Bronze → Silver → Gold
+dbt test                 # Run 120+ data quality checks
+dbt docs generate && dbt docs serve   # Interactive lineage graph
 ```
+
+---
+
+## Quickstart (Airflow — Local Docker)
+
+```bash
+# Copy env template
+cp .env.example .env
+# Edit .env with your Snowflake + Slack credentials
+
+# Start Airflow + Postgres
+docker-compose up -d
+
+# Wait ~30 seconds, then:
+# Airflow UI: http://localhost:8080 (admin / admin123)
+# Enable the 'enterprise_analytics_daily' DAG
+```
+
+---
+
+## Production Deployment (AWS EC2)
+
+See [`infra/ec2_setup.md`](infra/ec2_setup.md) for full instructions.
+
+```bash
+# On a fresh EC2 t3.medium (Ubuntu 22.04):
+git clone https://github.com/kiranmayee2408/enterprise-analytics-platform.git
+cd enterprise-analytics-platform
+chmod +x scripts/bootstrap_ec2.sh
+./scripts/bootstrap_ec2.sh
+# Then set credentials in /etc/environment and restart services
+```
+
+**Infrastructure:** EC2 t3.medium + RDS PostgreSQL (Airflow metadata). ~$47/month.
 
 ---
 
 ## dbt Models
 
-### Bronze (Views) — Raw validation
+### Bronze — Raw Validation (Views)
 | Model | Description |
 |---|---|
-| `stg_orders` | Typed orders from ERP — schema validation and casting |
+| `stg_orders` | Type-cast orders from ERP — adds `shipped_date`, audit columns |
 | `stg_customers` | Customer master with segment classification |
 
-### Silver (Incremental) — Feature engineering
+### Silver — Feature Engineering (Incremental merge)
 | Model | Description |
 |---|---|
-| `int_orders_enriched` | Orders + customer join, revenue calculations, DQ filter, on-time shipping |
+| `int_orders_enriched` | Revenue calcs (gross/net/discount), DQ flag, on-time shipping, customer join, date dims |
 
-### Gold (Tables) — Business marts
+Only records with `dq_flag = 'ok'` reach Silver. Approximately 3% of raw records are filtered for invalid prices or missing customers.
+
+### Gold — Business Marts (Clustered tables)
 | Model | Description | Consumers |
 |---|---|---|
-| `mart_revenue_by_segment` | Monthly revenue, MoM growth by segment/region/channel | Executive dashboard |
-| `mart_customer_360` | Lifetime value, RFM scores, churn risk, customer tier | CRM, retention |
+| `mart_revenue_by_segment` | Monthly revenue with MoM growth by segment/region/channel | Executive dashboard |
+| `mart_customer_360` | Lifetime value, RFM quintiles (1-5), churn risk tiers | CRM, retention |
+
+**GRANT SELECT** applied via `post-hook` so BI tool service accounts always have access after a refresh.
 
 ---
 
-## Data Quality
+## Data Quality — 120+ Tests
 
-50+ automated tests run after every pipeline execution:
+Tests run automatically after each dbt layer in the Airflow DAG. Any failure blocks downstream layers and fires a Slack alert.
 
-| Test Type | Example |
-|---|---|
-| Uniqueness | `order_id`, `customer_id`, `email` must be unique |
-| Not null | All key columns validated |
-| Accepted values | `status` in ['pending', 'confirmed', 'shipped', ...] |
-| Range checks | `unit_price` between 0 and 1M, `discount_pct` between 0 and 100 |
-| Referential integrity | Every order has a valid customer |
-| Freshness | Source tables updated within 24 hours |
-| Business rules | Silver layer contains only `dq_flag = 'ok'` records |
+| Category | Count | Examples |
+|---|---|---|
+| Source tests (raw) | 10 | `order_id` unique, `email` unique, freshness within 24h |
+| Uniqueness | 12 | PKs on every model |
+| Not null | 22 | All key fields across all 5 models |
+| Accepted values | 18 | `status`, `region`, `channel`, `customer_segment`, `churn_risk`, `customer_tier` |
+| Range checks | 30 | `unit_price`, `quantity`, `discount_pct`, `rfm_total`, `days_to_ship`, `on_time_delivery_pct` |
+| Referential integrity | 2 | `int_orders_enriched.customer_id → stg_customers` |
+| Business rules | 12 | `dq_flag = 'ok'` only in Silver, `net_revenue ≥ 0`, tier values constrained |
+| Custom macros | 14 | `freshness_check`, `dq_not_null_pct` |
+| **Total** | **120+** | |
 
----
-
-## Macros
-
-| Macro | Description |
-|---|---|
-| `safe_divide` | Null-safe division for ratio calculations |
-| `date_spine` | Generate a complete date series |
-| `revenue_bands` | Consistent revenue bucketing |
-| `generate_surrogate_key` | MD5-based surrogate keys from natural keys |
-| `freshness_check` | Assert data is no older than N hours |
+```bash
+dbt test   # runs all 120+ checks
+```
 
 ---
 
 ## Airflow DAG
 
-Daily run at 6 AM UTC with 2-hour SLA.
+**Schedule:** Daily 06:00 UTC | **SLA:** 2 hours | **Retries:** 2 × 5min
 
-Features:
-- Layer-by-layer execution (Bronze → Silver → Gold) with test gates between each layer
-- Slack alerting on success and failure
-- SLA miss callback
-- Automatic dbt docs regeneration after each successful run
-- Email alerting on failure with retry logic
+```
+source_freshness_check
+        └── dbt_run_bronze ── dbt_test_bronze
+                                    └── dbt_run_silver ── dbt_test_silver
+                                                                └── dbt_run_gold ── dbt_test_gold
+                                                                                        └── validate_row_counts
+                                                                                                └── generate_dbt_docs
+                                                                                                    ├── notify_success ✅
+                                                                                                    └── notify_failure ❌
+```
+
+Test gates between each layer: if Bronze tests fail, Silver never runs.
 
 ---
 
-## Tech Stack
+## GitHub Actions CI
 
-| Component | Technology |
-|---|---|
-| Data warehouse | Snowflake |
-| Transformation | dbt Core 1.8 |
-| Orchestration | Apache Airflow 2.9 |
-| BI | Tableau, Power BI |
-| CI/CD | GitHub Actions (dbt run on PR) |
-| Alerting | Slack webhooks |
+Every pull request to `main` triggers [`.github/workflows/dbt_ci.yml`](.github/workflows/dbt_ci.yml):
+
+1. `dbt compile` — syntax check (no DB required)
+2. `dbt run` — builds into an isolated `ci_<run_id>` schema
+3. `dbt test` — runs all 120+ checks against CI data
+4. Upload dbt docs as artifact
+5. Drop CI schema on completion
+
+---
+
+## Sample Data
+
+The repo ships with seed files for local development:
+
+| File | Rows | Description |
+|---|---|---|
+| `dbt_project/seeds/sample_customers.csv` | 50 | Customers across 7 countries, 3 segments |
+| `dbt_project/seeds/sample_orders.csv` | 200 | Orders Aug–Dec 2025 across 5 regions |
+
+```bash
+dbt seed    # loads sample data into your Snowflake dev schema
+dbt run     # pipeline runs end-to-end on the seed data
+dbt test    # all 120+ tests pass against sample data
+```
 
 ---
 
 ## Project Structure
 
 ```
-enterprise-analytics/
+enterprise-analytics-platform/
 ├── dbt_project/
 │   ├── models/
-│   │   ├── bronze/               # stg_orders, stg_customers (views)
-│   │   ├── silver/               # int_orders_enriched (incremental)
-│   │   └── gold/                 # mart_revenue_by_segment, mart_customer_360
-│   ├── macros/utils.sql          # 6 reusable SQL macros
-│   ├── tests/schema.yml          # 50+ data quality tests
-│   └── dbt_project.yml           # Project config + materialization strategy
+│   │   ├── bronze/        stg_orders.sql, stg_customers.sql
+│   │   ├── silver/        int_orders_enriched.sql
+│   │   └── gold/          mart_revenue_by_segment.sql, mart_customer_360.sql
+│   ├── tests/
+│   │   └── schema.yml     120+ data quality tests
+│   ├── macros/
+│   │   └── utils.sql      safe_divide, date_spine, revenue_bands, surrogate_key, freshness_check
+│   ├── seeds/
+│   │   ├── sample_customers.csv   50 customers (local dev)
+│   │   └── sample_orders.csv      200 orders (local dev)
+│   └── dbt_project.yml
 ├── airflow/
-│   └── dags/analytics_pipeline.py  # Full orchestration DAG with SLA
-└── config/                       # dbt profiles, environment config
+│   └── dags/
+│       └── analytics_pipeline.py  Daily DAG: freshness → Bronze → Silver → Gold → Slack
+├── .github/
+│   └── workflows/
+│       └── dbt_ci.yml     CI: compile + run + test on every PR
+├── infra/
+│   └── ec2_setup.md       Airflow on EC2 deployment guide
+├── scripts/
+│   └── bootstrap_ec2.sh   One-command EC2 setup script
+├── config/
+│   └── profiles.yml.example
+├── docker-compose.yml     Local Airflow + Postgres stack
+└── .env.example
 ```
+
+---
+
+## Key Design Decisions
+
+**Why incremental Silver models?** Raw orders grow daily. Full Silver refresh at 10M rows takes ~45 min. Incremental merge on `_loaded_at > max(_loaded_at)` cuts Silver runtime to ~3 min.
+
+**Why DQ filter in Silver, not Gold?** Filtering bad records at Silver ensures all Gold consumers inherit clean data automatically, without each mart replicating validation logic.
+
+**Why views for Bronze?** Bronze is just a typed reference to raw — no computation. Views add zero storage cost and give downstream models a stable, typed interface without materializing redundant data.
+
+**Why `post_hook` GRANT on Gold?** dbt recreates tables on each run, resetting Snowflake object-level grants. A `post_hook` re-grants access to the `REPORTER` role automatically after every refresh.
+
+**Why EC2 over MWAA?** For a team running one daily DAG, EC2 t3.medium ($30/month) vs Managed Airflow ($300+/month) is a $270/month saving with the same functionality.
 
 ---
 
